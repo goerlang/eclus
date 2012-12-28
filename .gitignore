@@ -1,0 +1,6 @@
+*~
+/eclus
+/bin
+/pkg
+erl_crash.dump
+
