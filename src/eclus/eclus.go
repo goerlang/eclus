@@ -57,7 +57,7 @@ func main() {
 type nodeRec struct {
 	dist.NodeInfo
 	Time  time.Time
-	Ready bool
+	Active bool
 	conn  net.Conn
 }
 
@@ -77,9 +77,9 @@ func epmReg(in <-chan regReq) {
 				for node, rec := range nReg {
 					if rec.conn == req.conn {
 						log.Printf("Connection for %s dropped", node)
-						nReg[node].Ready = false
+						nReg[node].Active = false
 						nReg[node].Time = now
-					} else if rs > regLimit && !rec.Ready && now.Sub(rec.Time).Minutes() > float64(unregTTL) {
+					} else if rs > regLimit && !rec.Active && now.Sub(rec.Time).Minutes() > float64(unregTTL) {
 						log.Printf("REG prune %s:%+v", node, rec)
 						delete(nReg, node)
 					}
@@ -110,7 +110,7 @@ func epmReg(in <-chan regReq) {
 				var data uint16 = 0
 				if rec, ok := nReg[nName]; ok {
 					log.Printf("Node %s found", nName)
-					if rec.Ready {
+					if rec.Active {
 						log.Printf("Node %s is running", nName)
 						reply[1] = 1 // ERROR
 						data = 99    // CANNOT REGISTER
@@ -124,7 +124,7 @@ func epmReg(in <-chan regReq) {
 						rec.LowVsn = lowVsn
 						rec.Extra = nExtra
 						rec.Creation = (rec.Creation % 3) + 1
-						rec.Ready = true
+						rec.Active = true
 						data = rec.Creation
 					}
 				} else {
@@ -142,7 +142,7 @@ func epmReg(in <-chan regReq) {
 						},
 						conn:  nConn,
 						Time:  time.Now(),
-						Ready: true,
+						Active: true,
 					}
 					nReg[nName] = rec
 					data = rec.Creation
@@ -153,7 +153,7 @@ func epmReg(in <-chan regReq) {
 			case dist.PORT_PLEASE2_REQ:
 				nName := buf[1:]
 				var reply []byte
-				if rec, ok := nReg[string(nName)]; ok && rec.Ready {
+				if rec, ok := nReg[string(nName)]; ok && rec.Active {
 					reply = make([]byte, 14+len(nName)+len(rec.Extra))
 					reply[0] = byte(dist.PORT2_RESP)
 					reply[1] = 0 // OK
@@ -190,11 +190,11 @@ func epmReg(in <-chan regReq) {
 					replyB.Write(reply)
 
 					for node, rec := range nReg {
-						if rec.Ready {
+						if rec.Active {
 							if dist.MessageId(buf[0]) == dist.NAMES_REQ {
 								replyB.Write([]byte(fmt.Sprintf("name %s at port %d\n", node, rec.Port)))
 							} else {
-								if rec.Ready {
+								if rec.Active {
 									replyB.Write([]byte(fmt.Sprintf("active name     <%s> at port %d\n", node, rec.Port)))
 								} else {
 									replyB.Write([]byte(fmt.Sprintf("old/unused name <%s>, port = %d\n", node, rec.Port)))
