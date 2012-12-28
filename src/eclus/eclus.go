@@ -13,9 +13,13 @@ import (
 )
 
 var listenPort string
+var regLimit int
+var unregTTL int
 
 func init() {
 	flag.StringVar(&listenPort, "port", "4369", "listen port")
+	flag.IntVar(&regLimit, "nodes-limit", 1000, "limit size of registration table to prune unregistered nodes")
+	flag.IntVar(&unregTTL, "unreg-ttl", 10, "prune unregistered nodes if unregistration older than this value in minutes")
 }
 
 type regAns struct {
@@ -75,7 +79,7 @@ func epmReg(in <-chan regReq) {
 						log.Printf("Connection for %s dropped", node)
 						nReg[node].Ready = false
 						nReg[node].Time = now
-					} else if rs > 10 && !rec.Ready && now.Sub(rec.Time).Seconds() > 30 {
+					} else if rs > regLimit && !rec.Ready && now.Sub(rec.Time).Minutes() > float64(unregTTL) {
 						log.Printf("REG prune %s:%+v", node, rec)
 						delete(nReg, node)
 					}
