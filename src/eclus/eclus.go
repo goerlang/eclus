@@ -190,8 +190,8 @@ func epmReg(in <-chan regReq) {
 					replyB.Write(reply)
 
 					for node, rec := range nReg {
-						if rec.Active {
-							if dist.MessageId(buf[0]) == dist.NAMES_REQ {
+						if dist.MessageId(buf[0]) == dist.NAMES_REQ {
+							if rec.Active {
 								replyB.Write([]byte(fmt.Sprintf("name %s at port %d\n", node, rec.Port)))
 							} else {
 								if rec.Active {
