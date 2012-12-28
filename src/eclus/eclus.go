@@ -1,15 +1,15 @@
 package main
 
 import (
-	"flag"
-	"log"
-	"fmt"
-	"time"
 	"bytes"
-	"strconv"
 	"encoding/binary"
 	"erlang/dist"
+	"flag"
+	"fmt"
+	"log"
 	"net"
+	"strconv"
+	"time"
 )
 
 var listenPort string
@@ -19,14 +19,14 @@ func init() {
 }
 
 type regAns struct {
-	reply []byte
+	reply   []byte
 	isClose bool
 }
 
 type regReq struct {
-	buf []byte
+	buf     []byte
 	replyTo chan regAns
-	conn net.Conn
+	conn    net.Conn
 }
 
 func main() {
@@ -52,18 +52,18 @@ func main() {
 
 type nodeRec struct {
 	dist.NodeInfo
-	Time       time.Time
-	Ready      bool
-	conn       net.Conn
+	Time  time.Time
+	Ready bool
+	conn  net.Conn
 }
 
-func epmReg(in <- chan regReq) {
+func epmReg(in <-chan regReq) {
 
 	var nReg = make(map[string]*nodeRec)
 
 	for {
 		select {
-		case req := <- in:
+		case req := <-in:
 			buf := req.buf
 			if len(buf) == 0 {
 				rs := len(nReg)
@@ -93,15 +93,15 @@ func epmReg(in <- chan regReq) {
 				highVsn := binary.BigEndian.Uint16(buf[5:7])
 				lowVsn := binary.BigEndian.Uint16(buf[7:9])
 				nLen := binary.BigEndian.Uint16(buf[9:11])
-				offset := (11+nLen)
+				offset := (11 + nLen)
 				nName := string(buf[11:offset])
 				//nELen := binary.BigEndian.Uint16(buf[offset:(offset+2)])
-				nExtra := buf[(offset+2):]
+				nExtra := buf[(offset + 2):]
 				log.Printf("Alive: N:%s, P:%d, T:%d", nName, nPort, nType)
 
 				reply := make([]byte, 4)
 				reply[0] = byte(dist.ALIVE2_RESP)
-				reply[1] = 0	// OK
+				reply[1] = 0 // OK
 
 				var data uint16 = 0
 				if rec, ok := nReg[nName]; ok {
@@ -109,7 +109,7 @@ func epmReg(in <- chan regReq) {
 					if rec.Ready {
 						log.Printf("Node %s is running", nName)
 						reply[1] = 1 // ERROR
-						data = 99 // CANNOT REGISTER
+						data = 99    // CANNOT REGISTER
 					} else {
 						log.Printf("Node %s is not running", nName)
 						rec.conn = nConn
@@ -126,18 +126,18 @@ func epmReg(in <- chan regReq) {
 				} else {
 					log.Printf("New node %s", nName)
 					rec := &nodeRec{
-					NodeInfo: dist.NodeInfo{
-							Name: nName,
-							Port: nPort,
-							Type: nType,
+						NodeInfo: dist.NodeInfo{
+							Name:     nName,
+							Port:     nPort,
+							Type:     nType,
 							Protocol: nProto,
-							HighVsn: highVsn,
-							LowVsn: lowVsn,
-							Extra: nExtra,
+							HighVsn:  highVsn,
+							LowVsn:   lowVsn,
+							Extra:    nExtra,
 							Creation: 1,
 						},
-						conn: nConn,
-						Time: time.Now(),
+						conn:  nConn,
+						Time:  time.Now(),
 						Ready: true,
 					}
 					nReg[nName] = rec
@@ -150,7 +150,7 @@ func epmReg(in <- chan regReq) {
 				nName := buf[1:]
 				var reply []byte
 				if rec, ok := nReg[string(nName)]; ok {
-					reply = make([]byte, 14 + len(nName) + len(rec.Extra))
+					reply = make([]byte, 14+len(nName)+len(rec.Extra))
 					reply[0] = byte(dist.PORT2_RESP)
 					reply[1] = 0 // OK
 					binary.BigEndian.PutUint16(reply[2:4], rec.Port)
@@ -160,7 +160,7 @@ func epmReg(in <- chan regReq) {
 					binary.BigEndian.PutUint16(reply[8:10], rec.LowVsn)
 					nLen := len(rec.Name)
 					binary.BigEndian.PutUint16(reply[10:12], uint16(nLen))
-					offset := (12+nLen)
+					offset := (12 + nLen)
 					copy(reply[12:offset], rec.Name)
 					nELen := len(rec.Extra)
 					binary.BigEndian.PutUint16(reply[offset:offset+2], uint16(nELen))
@@ -231,11 +231,11 @@ func mLoop(c net.Conn, epm chan regReq) {
 	c.Close()
 }
 
-func handleMsg(c net.Conn, buf []byte, epm chan regReq) (bool) {
+func handleMsg(c net.Conn, buf []byte, epm chan regReq) bool {
 	myChan := make(chan regAns)
 	epm <- regReq{buf: buf, replyTo: myChan, conn: c}
 	select {
-	case ans := <- myChan:
+	case ans := <-myChan:
 		log.Printf("Got reply: %+v", ans)
 		if ans.reply != nil {
 			c.Write(ans.reply)
