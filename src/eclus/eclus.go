@@ -153,7 +153,7 @@ func epmReg(in <-chan regReq) {
 			case dist.PORT_PLEASE2_REQ:
 				nName := buf[1:]
 				var reply []byte
-				if rec, ok := nReg[string(nName)]; ok {
+				if rec, ok := nReg[string(nName)]; ok && rec.Ready {
 					reply = make([]byte, 14+len(nName)+len(rec.Extra))
 					reply[0] = byte(dist.PORT2_RESP)
 					reply[1] = 0 // OK
