@@ -32,6 +32,9 @@ func epmCli() {
 	var req []byte
 	if isNames {
 		req = reqNames()
+	} else {
+		c.Close()
+		return
 	}
 	c.Write(req)
 	buf := make([]byte, 1024)
