@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"erlang/dist"
 	"flag"
-	"fmt"
 	"log"
 	"net"
 	"strconv"
@@ -55,16 +54,14 @@ func main() {
 }
 
 type nodeRec struct {
-	dist.NodeInfo
-	Time  time.Time
+	*dist.NodeInfo
+	Time   time.Time
 	Active bool
-	conn  net.Conn
+	conn   net.Conn
 }
 
 func epmReg(in <-chan regReq) {
-
 	var nReg = make(map[string]*nodeRec)
-
 	for {
 		select {
 		case req := <-in:
@@ -91,113 +88,63 @@ func epmReg(in <-chan regReq) {
 			switch dist.MessageId(buf[0]) {
 			case dist.ALIVE2_REQ:
 				nConn := req.conn
-				nPort := binary.BigEndian.Uint16(buf[1:3])
-				nType := buf[3]
-				nProto := buf[4]
-				highVsn := binary.BigEndian.Uint16(buf[5:7])
-				lowVsn := binary.BigEndian.Uint16(buf[7:9])
-				nLen := binary.BigEndian.Uint16(buf[9:11])
-				offset := (11 + nLen)
-				nName := string(buf[11:offset])
-				//nELen := binary.BigEndian.Uint16(buf[offset:(offset+2)])
-				nExtra := buf[(offset + 2):]
-				log.Printf("Alive: N:%s, P:%d, T:%d", nName, nPort, nType)
+				nInfo := dist.Read_ALIVE2_REQ(buf)
 
-				reply := make([]byte, 4)
-				reply[0] = byte(dist.ALIVE2_RESP)
-				reply[1] = 0 // OK
+				var reply []byte
 
-				var data uint16 = 0
-				if rec, ok := nReg[nName]; ok {
-					log.Printf("Node %s found", nName)
+				if rec, ok := nReg[nInfo.Name]; ok {
+					log.Printf("Node %s found", nInfo.Name)
 					if rec.Active {
-						log.Printf("Node %s is running", nName)
-						reply[1] = 1 // ERROR
-						data = 99    // CANNOT REGISTER
+						log.Printf("Node %s is running", nInfo.Name)
+						reply = dist.Compose_ALIVE2_RESP(false)
 					} else {
-						log.Printf("Node %s is not running", nName)
+						log.Printf("Node %s is not running", nInfo.Name)
 						rec.conn = nConn
-						rec.Port = nPort
-						rec.Type = nType
-						rec.Protocol = nProto
-						rec.HighVsn = highVsn
-						rec.LowVsn = lowVsn
-						rec.Extra = nExtra
-						rec.Creation = (rec.Creation % 3) + 1
+
+						nInfo.Creation = (rec.Creation % 3) + 1
+						rec.NodeInfo = nInfo
 						rec.Active = true
-						data = rec.Creation
+						reply = dist.Compose_ALIVE2_RESP(true, rec.Creation)
 					}
 				} else {
-					log.Printf("New node %s", nName)
+					log.Printf("New node %s", nInfo.Name)
+					nInfo.Creation = 1
 					rec := &nodeRec{
-						NodeInfo: dist.NodeInfo{
-							Name:     nName,
-							Port:     nPort,
-							Type:     nType,
-							Protocol: nProto,
-							HighVsn:  highVsn,
-							LowVsn:   lowVsn,
-							Extra:    nExtra,
-							Creation: 1,
-						},
-						conn:  nConn,
-						Time:  time.Now(),
-						Active: true,
+						NodeInfo: nInfo,
+						conn:     nConn,
+						Time:     time.Now(),
+						Active:   true,
 					}
-					nReg[nName] = rec
-					data = rec.Creation
+					nReg[nInfo.Name] = rec
+					reply = dist.Compose_ALIVE2_RESP(true, rec.Creation)
 				}
-
-				binary.BigEndian.PutUint16(reply[2:4], data)
 				replyTo <- regAns{reply: reply, isClose: false}
 			case dist.PORT_PLEASE2_REQ:
-				nName := buf[1:]
+				nName := dist.Read_PORT_PLEASE2_REQ(buf)
 				var reply []byte
-				if rec, ok := nReg[string(nName)]; ok && rec.Active {
-					reply = make([]byte, 14+len(nName)+len(rec.Extra))
-					reply[0] = byte(dist.PORT2_RESP)
-					reply[1] = 0 // OK
-					binary.BigEndian.PutUint16(reply[2:4], rec.Port)
-					reply[4] = rec.Type
-					reply[5] = rec.Protocol
-					binary.BigEndian.PutUint16(reply[6:8], rec.HighVsn)
-					binary.BigEndian.PutUint16(reply[8:10], rec.LowVsn)
-					nLen := len(rec.Name)
-					binary.BigEndian.PutUint16(reply[10:12], uint16(nLen))
-					offset := (12 + nLen)
-					copy(reply[12:offset], rec.Name)
-					nELen := len(rec.Extra)
-					binary.BigEndian.PutUint16(reply[offset:offset+2], uint16(nELen))
-					copy(reply[offset+2:offset+2+nELen], rec.Extra)
+				if rec, ok := nReg[nName]; ok && rec.Active {
+					reply = dist.Compose_PORT2_RESP(rec.NodeInfo)
 				} else {
-					reply = make([]byte, 2)
-					reply[0] = byte(dist.PORT2_RESP)
-					reply[1] = 1 // ERROR
+					reply = dist.Compose_PORT2_RESP(nil)
 				}
 				replyTo <- regAns{reply: reply, isClose: true}
 			case dist.NAMES_REQ, dist.DUMP_REQ:
-				log.Printf("NAMES_REQ")
 				lp, err := strconv.Atoi(listenPort)
 				if err != nil {
 					log.Printf("Cannot convert %s to integer", listenPort)
 					replyTo <- regAns{reply: nil, isClose: true}
 				} else {
-					log.Printf("Make a reply")
-
-					var replyB bytes.Buffer
-					reply := make([]byte, 4)
-					binary.BigEndian.PutUint32(reply, uint32(lp))
-					replyB.Write(reply)
-
-					for node, rec := range nReg {
+					replyB := new(bytes.Buffer)
+					dist.Compose_START_NAMES_RESP(replyB, lp)
+					for _, rec := range nReg {
 						if dist.MessageId(buf[0]) == dist.NAMES_REQ {
 							if rec.Active {
-								replyB.Write([]byte(fmt.Sprintf("name %s at port %d\n", node, rec.Port)))
+								dist.Append_NAMES_RESP(replyB, rec.NodeInfo)
 							} else {
 								if rec.Active {
-									replyB.Write([]byte(fmt.Sprintf("active name     <%s> at port %d\n", node, rec.Port)))
+									dist.Append_DUMP_RESP_ACTIVE(replyB, rec.NodeInfo)
 								} else {
-									replyB.Write([]byte(fmt.Sprintf("old/unused name <%s>, port = %d\n", node, rec.Port)))
+									dist.Append_DUMP_RESP_UNUSED(replyB, rec.NodeInfo)
 								}
 							}
 						}
@@ -205,7 +152,8 @@ func epmReg(in <-chan regReq) {
 					replyTo <- regAns{reply: replyB.Bytes(), isClose: true}
 				}
 			case dist.KILL_REQ:
-				replyTo <- regAns{reply: []byte("OK"), isClose: true}
+				reply := dist.Compose_KILL_RESP()
+				replyTo <- regAns{reply: reply, isClose: true}
 			default:
 				replyTo <- regAns{reply: nil, isClose: true}
 			}
