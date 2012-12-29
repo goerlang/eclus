@@ -37,20 +37,20 @@ func main() {
 
 	l, err := net.Listen("tcp", net.JoinHostPort("", listenPort))
 	if err != nil {
-		log.Fatal(err)
-	}
-	epm := make(chan regReq, 10)
-	go epmReg(epm)
-	for {
-		conn, err := l.Accept()
-		log.Printf("Accept new")
-		if err != nil {
-			log.Printf(err.Error())
-		} else {
-			go mLoop(conn, epm)
+		epmCli()
+	} else {
+		epm := make(chan regReq, 10)
+		go epmReg(epm)
+		for {
+			conn, err := l.Accept()
+			log.Printf("Accept new")
+			if err != nil {
+				log.Printf(err.Error())
+			} else {
+				go mLoop(conn, epm)
+			}
 		}
 	}
-	log.Printf("Exit")
 }
 
 type nodeRec struct {
@@ -155,7 +155,13 @@ func epmReg(in <-chan regReq) {
 				reply := dist.Compose_KILL_RESP()
 				replyTo <- regAns{reply: reply, isClose: true}
 			default:
-				replyTo <- regAns{reply: nil, isClose: true}
+				switch cliMessageId(buf[0]) {
+				case REQ_NAMES:
+					reply := ansNames(nReg)
+					replyTo <- regAns{reply: reply, isClose: true}
+				default:
+					replyTo <- regAns{reply: nil, isClose: true}
+				}
 			}
 		}
 	}
