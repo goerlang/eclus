@@ -18,15 +18,25 @@ type NodeInfo struct {
 }
 
 func Read_ALIVE2_REQ(buf []byte) (ni *NodeInfo) {
+	if len(buf) < 11 {
+		return nil
+	}
 	nPort := binary.BigEndian.Uint16(buf[1:3])
 	nType := buf[3]
 	nProto := buf[4]
 	highVsn := binary.BigEndian.Uint16(buf[5:7])
 	lowVsn := binary.BigEndian.Uint16(buf[7:9])
 	nLen := binary.BigEndian.Uint16(buf[9:11])
+
 	offset := (11 + nLen)
+	if len(buf) < int(offset+2) {
+		return nil
+	}
 	nName := string(buf[11:offset])
-	//nELen := binary.BigEndian.Uint16(buf[offset:(offset+2)])
+	nELen := binary.BigEndian.Uint16(buf[offset:(offset+2)])
+	if len(buf) < int(offset + 2 + nELen) {
+		return nil
+	}
 	nExtra := buf[(offset + 2):]
 
 	return &NodeInfo{
