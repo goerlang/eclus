@@ -174,6 +174,7 @@ func mLoop(c net.Conn, epm chan regReq) {
 		length := binary.BigEndian.Uint16(buf[0:2])
 		if length != uint16(n-2) {
 			log.Printf("Incomplete packet: %d from %d", n, length)
+			break
 		}
 		log.Printf("Read %d, %d: %v", n, length, buf[2:n])
 		if isClose := handleMsg(c, buf[2:n], epm); isClose {
