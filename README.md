@@ -31,3 +31,10 @@ To check registered names on epmd, run `eclus` with flag `-names`:
 ```
 
 Header is: `|  Node name  |  Port of node  |  Node state  |  Creation counter  |  Recent state change date  |`
+
+
+# Build Status #
+
+<a href="http://goci.me/project/github.com/metachord/eclus">
+<img src="http://goci.me/project/image/github.com/metachord/eclus" />
+</a>
