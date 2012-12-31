@@ -35,6 +35,4 @@ Header is: `|  Node name  |  Port of node  |  Node state  |  Creation counter  |
 
 # Build Status #
 
-<a href="http://goci.me/project/github.com/metachord/eclus">
-<img src="http://goci.me/project/image/github.com/metachord/eclus" />
-</a>
+[![GoCI Build Status](http://goci.me/project/image/github.com/metachord/eclus)](http://goci.me/project/github.com/metachord/eclus)
