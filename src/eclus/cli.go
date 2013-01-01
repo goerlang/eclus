@@ -3,18 +3,21 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
+	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"net"
+	"reflect"
 	"sort"
+	"strconv"
 	"time"
 )
 
 type cliMessageId uint8
 
 const (
-	REQ_NAMES  = cliMessageId('N') // 78
+	REQ_NAMES = cliMessageId('N') // 78
 )
 
 var isNames bool
@@ -45,7 +48,6 @@ func epmCli() {
 	c.Close()
 }
 
-
 func reqNames() (req []byte) {
 	req = make([]byte, 3)
 	req[2] = byte('N')
@@ -66,10 +68,17 @@ func ansNames(nReg map[string]*nodeRec) (reply []byte) {
 		}
 	}
 	sort.Sort(&nodes)
-	format := fmt.Sprintf("%%%ds\t%%d\t%%s\t%%d\t%%s\n", mlen)
+	format := fmt.Sprintf("%%%ds\t%%d\t%%s\t%%s\t%%d\t%%s\n", mlen)
 	for _, nn := range nodes {
 		rec := nReg[nn]
-		replyB.Write([]byte(fmt.Sprintf(format, rec.Name, rec.Port, actStr(rec.Active), rec.Creation, rec.Time.Format(time.ANSIC))))
+		sysfd, _ := sysfd(rec.conn)
+		var sysfdS string
+		if sysfd < 0 {
+			sysfdS = "none"
+		} else {
+			sysfdS = strconv.Itoa(sysfd)
+		}
+		replyB.Write([]byte(fmt.Sprintf(format, rec.Name, rec.Port, sysfdS, actStr(rec.Active), rec.Creation, rec.Time.Format(time.ANSIC))))
 	}
 	reply = replyB.Bytes()
 	return
@@ -82,4 +91,22 @@ func actStr(a bool) (s string) {
 		s = "down"
 	}
 	return
+}
+
+func sysfd(c net.Conn) (int, error) {
+	switch p := c.(type) {
+	case *net.TCPConn, *net.UDPConn, *net.IPConn:
+		cv := reflect.ValueOf(p)
+		switch ce := cv.Elem(); ce.Kind() {
+		case reflect.Struct:
+			netfd := ce.FieldByName("conn").FieldByName("fd")
+			switch fe := netfd.Elem(); fe.Kind() {
+			case reflect.Struct:
+				fd := fe.FieldByName("sysfd")
+				return int(fd.Int()), nil
+			}
+		}
+		return -1, errors.New("invalid conn type")
+	}
+	return -1, errors.New("invalid conn type")
 }

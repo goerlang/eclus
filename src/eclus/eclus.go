@@ -76,6 +76,7 @@ func epmReg(in <-chan regReq) {
 						log.Printf("Connection for %s dropped", node)
 						nReg[node].Active = false
 						nReg[node].Time = now
+						nReg[node].conn = nil
 					} else if rs > regLimit && !rec.Active && now.Sub(rec.Time).Minutes() > float64(unregTTL) {
 						log.Printf("REG prune %s:%+v", node, rec)
 						delete(nReg, node)
