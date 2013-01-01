@@ -24,13 +24,13 @@ To check registered names on epmd, run `eclus` with flag `-names`:
 
 ```sh
     $ eclus -names
-        asd 50249   active  1       Sun Dec 30 03:40:47 2012
-    gangnam 40937   down    2       Sun Dec 30 03:44:51 2012
-       oppa 36677   active  2       Sun Dec 30 03:44:48 2012
-        qwe 60255   down    1       Sun Dec 30 03:44:25 2012
+        asd	50249	7		active	1	Sun Dec 30 03:40:47 2012
+    gangnam	40937	none	down	2	Sun Dec 30 03:44:51 2012
+       oppa	36677	9		active	2	Sun Dec 30 03:44:48 2012
+        qwe	60255	none	down	1	Sun Dec 30 03:44:25 2012
 ```
 
-Header is: `|  Node name  |  Port of node  |  Node state  |  Creation counter  |  Recent state change date  |`
+Header is: `|  Node name  |  Port of node  |  File descriptor of node connection  |  Node state  |  Creation counter  |  Recent state change date  |`
 
 
 # Build Status #
