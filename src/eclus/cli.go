@@ -23,11 +23,10 @@ func init() {
 	flag.BoolVar(&isNames, "names", false, "(CLI) print names")
 }
 
-
 func epmCli() {
 	c, err := net.Dial("tcp", net.JoinHostPort("", listenPort))
 	if err != nil {
-		log.Fatal("Cannot connect to %s port", listenPort)
+		log.Fatalf("Cannot connect to %s port", listenPort)
 	}
 	var req []byte
 	if isNames {
