@@ -68,8 +68,8 @@ func ansNames(nReg map[string]*nodeRec) (reply []byte) {
 	}
 	sort.Sort(&nodes)
 	format := fmt.Sprintf("%%%ds\t%%d\t%%s\t%%d\t%%s\n", mlen)
-	for i := range nodes {
-		rec := nReg[nodes[i]]
+	for _, nn := range nodes {
+		rec := nReg[nn]
 		replyB.Write([]byte(fmt.Sprintf(format, rec.Name, rec.Port, actStr(rec.Active), rec.Creation, rec.Time.Format(time.ANSIC))))
 	}
 	reply = replyB.Bytes()
