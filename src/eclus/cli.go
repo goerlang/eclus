@@ -23,7 +23,7 @@ const (
 var isNames bool
 
 func init() {
-	flag.BoolVar(&isNames, "names", false, "(CLI) print names")
+	flag.BoolVar(&isNames, "names", false, "(CLI) print nodes info: name | port | fd | state | creation | state change date")
 }
 
 func epmCli() {
