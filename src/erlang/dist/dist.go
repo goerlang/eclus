@@ -33,8 +33,8 @@ func Read_ALIVE2_REQ(buf []byte) (ni *NodeInfo) {
 		return nil
 	}
 	nName := string(buf[11:offset])
-	nELen := binary.BigEndian.Uint16(buf[offset:(offset+2)])
-	if len(buf) < int(offset + 2 + nELen) {
+	nELen := binary.BigEndian.Uint16(buf[offset:(offset + 2)])
+	if len(buf) < int(offset+2+nELen) {
 		return nil
 	}
 	nExtra := buf[(offset + 2):]
