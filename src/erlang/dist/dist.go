@@ -117,3 +117,17 @@ func Compose_KILL_RESP() (reply []byte) {
 	reply = []byte("OK")
 	return
 }
+
+func Read_STOP_REQ(buf []byte) (name string) {
+	name = string(buf[1:])
+	return
+}
+
+func Compose_STOP_RESP(isOk bool) (reply []byte) {
+	if isOk {
+		reply = []byte("STOPPED")
+	} else {
+		reply = []byte("NOEXIST")
+	}
+	return
+}

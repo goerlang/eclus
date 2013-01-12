@@ -11,6 +11,8 @@ const (
 
 	NAMES_REQ = MessageId('n') // 110
 
+	STOP_REQ = MessageId('s') // 115
+
 	DUMP_REQ = MessageId('d') // 100
 
 	KILL_REQ = MessageId('k') // 107

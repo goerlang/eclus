@@ -129,6 +129,16 @@ func epmReg(in <-chan regReq) {
 					reply = dist.Compose_PORT2_RESP(nil)
 				}
 				replyTo <- regAns{reply: reply, isClose: true}
+			case dist.STOP_REQ:
+				nName := dist.Read_STOP_REQ(buf)
+				var reply []byte
+				if rec, ok := nReg[nName]; ok && rec.Active {
+					// TODO: stop node
+					reply = dist.Compose_STOP_RESP(true)
+				} else {
+					reply = dist.Compose_STOP_RESP(false)
+				}
+				replyTo <- regAns{reply: reply, isClose: true}
 			case dist.NAMES_REQ, dist.DUMP_REQ:
 				lp, err := strconv.Atoi(listenPort)
 				if err != nil {
