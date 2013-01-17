@@ -161,7 +161,7 @@ func (currNd *NodeDesc) HandleMessage(c net.Conn) (err error) {
 		switch msg[0] {
 		case 'p':
 			res := currNd.read_TERM(msg[1:])
-				log.Printf("TERM: %v", res)
+				log.Printf("READ TERM: %+v", res)
 			}
 
 	}
