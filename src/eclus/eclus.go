@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
-	"erlang/dist"
+	"erlang/epmd"
 	"flag"
 	"log"
 	"net"
@@ -34,6 +34,7 @@ type regReq struct {
 
 func main() {
 	flag.Parse()
+	stopCh := make(chan bool)
 
 	l, err := net.Listen("tcp", net.JoinHostPort("", listenPort))
 	if err != nil {
@@ -41,20 +42,25 @@ func main() {
 	} else {
 		epm := make(chan regReq, 10)
 		go epmReg(epm)
-		for {
-			conn, err := l.Accept()
-			log.Printf("Accept new")
-			if err != nil {
-				log.Printf(err.Error())
-			} else {
-				go mLoop(conn, epm)
+		go func () {for {
+				conn, err := l.Accept()
+				log.Printf("Accept new")
+				if err != nil {
+					log.Printf(err.Error())
+				} else {
+					go mLoop(conn, epm)
+				}
 			}
-		}
+		}()
 	}
+	if nodeEnabled() {
+		go runNode()
+	}
+	<- stopCh
 }
 
 type nodeRec struct {
-	*dist.NodeInfo
+	*epmd.NodeInfo
 	Time   time.Time
 	Active bool
 	conn   net.Conn
@@ -86,18 +92,18 @@ func epmReg(in <-chan regReq) {
 			}
 			replyTo := req.replyTo
 			log.Printf("IN: %v", buf)
-			switch dist.MessageId(buf[0]) {
-			case dist.ALIVE2_REQ:
+			switch epmd.MessageId(buf[0]) {
+			case epmd.ALIVE2_REQ:
 				nConn := req.conn
-				nInfo := dist.Read_ALIVE2_REQ(buf)
-
+				nInfo := epmd.Read_ALIVE2_REQ(buf)
+				log.Printf("NodeInfo: %+v", nInfo)
 				var reply []byte
 
 				if rec, ok := nReg[nInfo.Name]; ok {
 					log.Printf("Node %s found", nInfo.Name)
 					if rec.Active {
 						log.Printf("Node %s is running", nInfo.Name)
-						reply = dist.Compose_ALIVE2_RESP(false)
+						reply = epmd.Compose_ALIVE2_RESP(false)
 					} else {
 						log.Printf("Node %s is not running", nInfo.Name)
 						rec.conn = nConn
@@ -105,7 +111,7 @@ func epmReg(in <-chan regReq) {
 						nInfo.Creation = (rec.Creation % 3) + 1
 						rec.NodeInfo = nInfo
 						rec.Active = true
-						reply = dist.Compose_ALIVE2_RESP(true, rec.Creation)
+						reply = epmd.Compose_ALIVE2_RESP(true, rec.NodeInfo)
 					}
 				} else {
 					log.Printf("New node %s", nInfo.Name)
@@ -117,53 +123,53 @@ func epmReg(in <-chan regReq) {
 						Active:   true,
 					}
 					nReg[nInfo.Name] = rec
-					reply = dist.Compose_ALIVE2_RESP(true, rec.Creation)
+					reply = epmd.Compose_ALIVE2_RESP(true, rec.NodeInfo)
 				}
 				replyTo <- regAns{reply: reply, isClose: false}
-			case dist.PORT_PLEASE2_REQ:
-				nName := dist.Read_PORT_PLEASE2_REQ(buf)
+			case epmd.PORT_PLEASE2_REQ:
+				nName := epmd.Read_PORT_PLEASE2_REQ(buf)
 				var reply []byte
 				if rec, ok := nReg[nName]; ok && rec.Active {
-					reply = dist.Compose_PORT2_RESP(rec.NodeInfo)
+					reply = epmd.Compose_PORT2_RESP(rec.NodeInfo)
 				} else {
-					reply = dist.Compose_PORT2_RESP(nil)
+					reply = epmd.Compose_PORT2_RESP(nil)
 				}
 				replyTo <- regAns{reply: reply, isClose: true}
-			case dist.STOP_REQ:
-				nName := dist.Read_STOP_REQ(buf)
+			case epmd.STOP_REQ:
+				nName := epmd.Read_STOP_REQ(buf)
 				var reply []byte
 				if rec, ok := nReg[nName]; ok && rec.Active {
 					// TODO: stop node
-					reply = dist.Compose_STOP_RESP(true)
+					reply = epmd.Compose_STOP_RESP(true)
 				} else {
-					reply = dist.Compose_STOP_RESP(false)
+					reply = epmd.Compose_STOP_RESP(false)
 				}
 				replyTo <- regAns{reply: reply, isClose: true}
-			case dist.NAMES_REQ, dist.DUMP_REQ:
+			case epmd.NAMES_REQ, epmd.DUMP_REQ:
 				lp, err := strconv.Atoi(listenPort)
 				if err != nil {
 					log.Printf("Cannot convert %s to integer", listenPort)
 					replyTo <- regAns{reply: nil, isClose: true}
 				} else {
 					replyB := new(bytes.Buffer)
-					dist.Compose_START_NAMES_RESP(replyB, lp)
+					epmd.Compose_START_NAMES_RESP(replyB, lp)
 					for _, rec := range nReg {
-						if dist.MessageId(buf[0]) == dist.NAMES_REQ {
+						if epmd.MessageId(buf[0]) == epmd.NAMES_REQ {
 							if rec.Active {
-								dist.Append_NAMES_RESP(replyB, rec.NodeInfo)
+								epmd.Append_NAMES_RESP(replyB, rec.NodeInfo)
 							} else {
 								if rec.Active {
-									dist.Append_DUMP_RESP_ACTIVE(replyB, rec.NodeInfo)
+									epmd.Append_DUMP_RESP_ACTIVE(replyB, rec.NodeInfo)
 								} else {
-									dist.Append_DUMP_RESP_UNUSED(replyB, rec.NodeInfo)
+									epmd.Append_DUMP_RESP_UNUSED(replyB, rec.NodeInfo)
 								}
 							}
 						}
 					}
 					replyTo <- regAns{reply: replyB.Bytes(), isClose: true}
 				}
-			case dist.KILL_REQ:
-				reply := dist.Compose_KILL_RESP()
+			case epmd.KILL_REQ:
+				reply := epmd.Compose_KILL_RESP()
 				replyTo <- regAns{reply: reply, isClose: true}
 			default:
 				switch cliMessageId(buf[0]) {
@@ -190,7 +196,7 @@ func mLoop(c net.Conn, epm chan regReq) {
 		}
 		length := binary.BigEndian.Uint16(buf[0:2])
 		if length != uint16(n-2) {
-			log.Printf("Incomplete packet: %d from %d", n, length)
+			log.Printf("Incomplete packet from erlang node to epmd: %d from %d", n, length)
 			break
 		}
 		log.Printf("Read %d, %d: %v", n, length, buf[2:n])

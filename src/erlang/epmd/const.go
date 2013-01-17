@@ -1,4 +1,4 @@
-package dist
+package epmd
 
 type MessageId uint8
 
