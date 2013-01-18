@@ -2,17 +2,17 @@ package dist
 
 import (
 	"bytes"
-	"math/rand"
-	"time"
-	"log"
-	"encoding/binary"
 	"crypto/md5"
-	"io"
-	"net"
-	"errors"
-	"strings"
-	"strconv"
+	"encoding/binary"
 	"erlang/term"
+	"errors"
+	"io"
+	"log"
+	"math/rand"
+	"net"
+	"strconv"
+	"strings"
+	"time"
 )
 
 type flagId uint32
@@ -59,35 +59,33 @@ func toNodeFlag(f ...flagId) (nf nodeFlag) {
 type nodeState uint8
 
 const (
-	HANDSHAKE    nodeState   = iota
+	HANDSHAKE nodeState = iota
 	CONNECTED
 )
 
-
 type NodeDesc struct {
-	Name   string
-	Cookie string
-	Hidden bool
-	remote *NodeDesc
-	state nodeState
+	Name      string
+	Cookie    string
+	Hidden    bool
+	remote    *NodeDesc
+	state     nodeState
 	challenge uint32
-	flag   nodeFlag
-	version uint16
+	flag      nodeFlag
+	version   uint16
 }
 
 func NewNodeDesc(name, cookie string, isHidden bool) (nd *NodeDesc) {
 	nd = &NodeDesc{
-		Name: name,
-		Cookie: cookie,
-		Hidden: isHidden,
-		remote: nil,
-		state: HANDSHAKE,
-		flag: toNodeFlag(PUBLISHED, UNICODE_IO, EXTENDED_PIDS_PORTS, EXTENDED_REFERENCES),
+		Name:    name,
+		Cookie:  cookie,
+		Hidden:  isHidden,
+		remote:  nil,
+		state:   HANDSHAKE,
+		flag:    toNodeFlag(PUBLISHED, UNICODE_IO, EXTENDED_PIDS_PORTS, EXTENDED_REFERENCES),
 		version: 5,
 	}
 	return nd
 }
-
 
 func (currNd *NodeDesc) ReadMessage(c net.Conn) (err error) {
 	rcbuf := new(bytes.Buffer)
@@ -200,9 +198,9 @@ func (currNd *NodeDesc) read_SEND_NAME(msg []byte) (nd *NodeDesc) {
 	flag := nodeFlag(binary.BigEndian.Uint32(msg[3:7]))
 	name := string(msg[7:])
 	nd = &NodeDesc{
-		Name: name,
+		Name:    name,
 		version: version,
-		flag: flag,
+		flag:    flag,
 	}
 	currNd.remote = nd
 	return
@@ -260,21 +258,21 @@ func genDigest(challenge uint32, cookie string) (sum []byte) {
 
 func (nd NodeDesc) Flags() (flags []string) {
 	fs := map[flagId]string{
-		PUBLISHED           : "PUBLISHED",
-		ATOM_CACHE          : "ATOM_CACHE",
-		EXTENDED_REFERENCES : "EXTENDED_REFERENCES",
-		DIST_MONITOR        : "DIST_MONITOR",
-		FUN_TAGS            : "FUN_TAGS",
-		DIST_MONITOR_NAME   : "DIST_MONITOR_NAME",
-		HIDDEN_ATOM_CACHE   : "HIDDEN_ATOM_CACHE",
-		NEW_FUN_TAGS        : "NEW_FUN_TAGS",
-		EXTENDED_PIDS_PORTS : "EXTENDED_PIDS_PORTS",
-		EXPORT_PTR_TAG      : "EXPORT_PTR_TAG",
-		BIT_BINARIES        : "BIT_BINARIES",
-		NEW_FLOATS          : "NEW_FLOATS",
-		UNICODE_IO          : "UNICODE_IO",
-		DIST_HDR_ATOM_CACHE : "DIST_HDR_ATOM_CACHE",
-		SMALL_ATOM_TAGS     : "SMALL_ATOM_TAGS",
+		PUBLISHED:           "PUBLISHED",
+		ATOM_CACHE:          "ATOM_CACHE",
+		EXTENDED_REFERENCES: "EXTENDED_REFERENCES",
+		DIST_MONITOR:        "DIST_MONITOR",
+		FUN_TAGS:            "FUN_TAGS",
+		DIST_MONITOR_NAME:   "DIST_MONITOR_NAME",
+		HIDDEN_ATOM_CACHE:   "HIDDEN_ATOM_CACHE",
+		NEW_FUN_TAGS:        "NEW_FUN_TAGS",
+		EXTENDED_PIDS_PORTS: "EXTENDED_PIDS_PORTS",
+		EXPORT_PTR_TAG:      "EXPORT_PTR_TAG",
+		BIT_BINARIES:        "BIT_BINARIES",
+		NEW_FLOATS:          "NEW_FLOATS",
+		UNICODE_IO:          "UNICODE_IO",
+		DIST_HDR_ATOM_CACHE: "DIST_HDR_ATOM_CACHE",
+		SMALL_ATOM_TAGS:     "SMALL_ATOM_TAGS",
 	}
 
 	for k, v := range fs {

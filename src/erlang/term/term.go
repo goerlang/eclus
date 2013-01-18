@@ -1,43 +1,43 @@
 package term
 
 import (
+	"encoding/binary"
 	"io"
 	"log"
-	"encoding/binary"
 )
 
 type ErlType byte
 
 const (
 	ErlTypeAtom         ErlType = 'd'
-	ErlTypeBinary       = 'm'
-	ErlTypeCachedAtom   = 'C'
-	ErlTypeFloat        = 'c'
-	ErlTypeFun          = 'u'
-	ErlTypeInteger      = 'b'
-	ErlTypeLargeBig     = 'o'
-	ErlTypeLargeTuple   = 'i'
-	ErlTypeList         = 'l'
-	ErlTypeNewCache     = 'N'
-	ErlTypeNewFloat     = 'F'
-	ErlTypeNewFun       = 'p'
-	ErlTypeNewReference = 'r'
-	ErlTypeNil          = 'j'
-	ErlTypePid          = 'g'
-	ErlTypePort         = 'f'
-	ErlTypeReference    = 'e'
-	ErlTypeSmallAtom    = 's'
-	ErlTypeSmallBig     = 'n'
-	ErlTypeSmallInteger = 'a'
-	ErlTypeSmallTuple   = 'h'
-	ErlTypeString       = 'k'
+	ErlTypeBinary               = 'm'
+	ErlTypeCachedAtom           = 'C'
+	ErlTypeFloat                = 'c'
+	ErlTypeFun                  = 'u'
+	ErlTypeInteger              = 'b'
+	ErlTypeLargeBig             = 'o'
+	ErlTypeLargeTuple           = 'i'
+	ErlTypeList                 = 'l'
+	ErlTypeNewCache             = 'N'
+	ErlTypeNewFloat             = 'F'
+	ErlTypeNewFun               = 'p'
+	ErlTypeNewReference         = 'r'
+	ErlTypeNil                  = 'j'
+	ErlTypePid                  = 'g'
+	ErlTypePort                 = 'f'
+	ErlTypeReference            = 'e'
+	ErlTypeSmallAtom            = 's'
+	ErlTypeSmallBig             = 'n'
+	ErlTypeSmallInteger         = 'a'
+	ErlTypeSmallTuple           = 'h'
+	ErlTypeString               = 'k'
 )
 
 const (
 	ErlFormatVersion = byte(131)
 )
 
-type Term interface{
+type Term interface {
 	Write(io.Writer) error
 }
 
@@ -84,18 +84,16 @@ func (t Int) Write(w io.Writer) (err error) {
 	return
 }
 
-
 type Atom string
 
 func (t Atom) Write(w io.Writer) (err error) {
-	buf := make([]byte, 3 + len(t))
+	buf := make([]byte, 3+len(t))
 	buf[0] = byte(ErlTypeAtom)
 	binary.BigEndian.PutUint16(buf[1:3], uint16(len(t)))
 	copy(buf[3:], []byte(t))
 	_, err = w.Write(buf)
 	return
 }
-
 
 type Pid struct {
 	Node     Atom
@@ -148,7 +146,6 @@ type Export struct {
 	Function Atom
 	Arity    byte
 }
-
 
 func Read(buf []byte) (t Term, n int) {
 	if (len(buf) == 0) || buf[0] != ErlFormatVersion {
@@ -214,9 +211,9 @@ func readInteger(buf []byte) (t Int, n int) {
 func readPid(buf []byte) (t Pid, n int) {
 	t.Node, n = readAtom(buf[1:])
 	n += 1
-	t.Id = binary.BigEndian.Uint32(buf[n:n+4])
+	t.Id = binary.BigEndian.Uint32(buf[n : n+4])
 	n += 4
-	t.Serial = binary.BigEndian.Uint32(buf[n:n+4])
+	t.Serial = binary.BigEndian.Uint32(buf[n : n+4])
 	n += 4
 	t.Creation = buf[n]
 	n += 1
@@ -236,7 +233,7 @@ func readNewReference(buf []byte) (t Reference, n int) {
 
 	t.Id = make([]uint32, length)
 	for i := 0; i < int(length); i++ {
-		t.Id[i] = binary.BigEndian.Uint32(buf[n:n+4])
+		t.Id[i] = binary.BigEndian.Uint32(buf[n : n+4])
 		n += 4
 	}
 	log.Printf("Read reference: %#v", t)
@@ -245,7 +242,7 @@ func readNewReference(buf []byte) (t Reference, n int) {
 
 func readAtom(buf []byte) (t Atom, n int) {
 	length := binary.BigEndian.Uint16(buf[1:3])
-	t = Atom(buf[3:length+3])
+	t = Atom(buf[3 : length+3])
 	n = 3 + int(length)
 	log.Printf("Read atom: %#v", t)
 	return

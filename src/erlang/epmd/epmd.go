@@ -11,7 +11,7 @@ type NodeInfo struct {
 	Name     string
 	Domain   string
 	Port     uint16
-	Type     uint8				// 77 — Normal Erlang node, 72 — hidden (C-node)
+	Type     uint8 // 77 — Normal Erlang node, 72 — hidden (C-node)
 	Protocol uint8
 	HighVsn  uint16
 	LowVsn   uint16

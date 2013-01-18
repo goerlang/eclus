@@ -42,7 +42,8 @@ func main() {
 	} else {
 		epm := make(chan regReq, 10)
 		go epmReg(epm)
-		go func () {for {
+		go func() {
+			for {
 				conn, err := l.Accept()
 				log.Printf("Accept new")
 				if err != nil {
@@ -56,7 +57,7 @@ func main() {
 	if nodeEnabled() {
 		go runNode()
 	}
-	<- stopCh
+	<-stopCh
 }
 
 type nodeRec struct {

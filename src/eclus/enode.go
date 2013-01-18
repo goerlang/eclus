@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	//"fmt"
-	"log"
 	"erlang/node"
+	"log"
 )
 
 var enableNode bool
@@ -17,7 +17,7 @@ func init() {
 	flag.StringVar(&nodeCookie, "node-cookie", "", "cookie of erlang node")
 }
 
-func nodeEnabled() (bool) {
+func nodeEnabled() bool {
 	return enableNode
 }
 
