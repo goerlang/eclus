@@ -36,3 +36,13 @@ Header is: `|  Node name  |  Port of node  |  File descriptor of node connection
 # Build Status #
 
 [![GoCI Build Status](http://goci.me/project/image/github.com/metachord/eclus)](http://goci.me/project/github.com/metachord/eclus)
+
+# Go-node #
+
+## in progress... ##
+
+[External Term Format](http://www.erlang.org/doc/apps/erts/erl_ext_dist.html)
+
+[Distribution Protocol](http://www.erlang.org/doc/apps/erts/erl_dist_protocol.html)
+
+Source of `otp/lib/kernel/src/dist_util.erl`
