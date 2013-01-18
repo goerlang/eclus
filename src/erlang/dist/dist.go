@@ -2,6 +2,8 @@ package dist
 
 import (
 	"bytes"
+	"math/rand"
+	"time"
 	"log"
 	"encoding/binary"
 	"crypto/md5"
@@ -133,8 +135,8 @@ func (currNd *NodeDesc) ReadMessage(c net.Conn) (err error) {
 				return
 			}
 
-			currNd.challenge = 2112311231 // FIXME
-
+			rand.Seed(time.Now().UTC().UnixNano())
+			currNd.challenge = rand.Uint32()
 
 			// Now send challenge
 			challenge := currNd.compose_SEND_CHALLENGE(sn)
