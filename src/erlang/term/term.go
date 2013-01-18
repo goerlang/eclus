@@ -115,10 +115,20 @@ type Port struct {
 	Creation byte
 }
 
+func (t Port) Write(w io.Writer) (err error) {
+	// TODO: Port serialization
+	return
+}
+
 type Reference struct {
 	Node     Atom
 	Creation byte
 	Id       []uint32
+}
+
+func (t Reference) Write(w io.Writer) (err error) {
+	// TODO: Reference serialization
+	return
 }
 
 type Function struct {
@@ -140,12 +150,13 @@ type Export struct {
 }
 
 
-func Read(buf []byte) (t Term) {
-	if buf[0] != ErlFormatVersion {
+func Read(buf []byte) (t Term, n int) {
+	if (len(buf) == 0) || buf[0] != ErlFormatVersion {
 		t = nil
 		return
 	}
-	t, _ = readTerm(buf[1:])
+	t, n = readTerm(buf[1:])
+	n += 1
 	return
 }
 
@@ -155,10 +166,16 @@ func readTerm(buf []byte) (t Term, n int) {
 		t, n = readSmallTuple(buf)
 	case ErlTypeSmallInteger:
 		t, n = readSmallInteger(buf)
+	case ErlTypeInteger:
+		t, n = readInteger(buf)
 	case ErlTypePid:
 		t, n = readPid(buf)
 	case ErlTypeAtom:
 		t, n = readAtom(buf)
+	case ErlTypeNewReference:
+		t, n = readNewReference(buf)
+	case ErlTypeNil:
+		t, n = readNil(buf)
 	default:
 		log.Printf("Term not supported: %v", buf)
 	}
@@ -167,7 +184,6 @@ func readTerm(buf []byte) (t Term, n int) {
 
 func readSmallTuple(buf []byte) (t Tuple, n int) {
 	arity := uint8(buf[1])
-	log.Printf("Tuple arity: %d", arity)
 	tuple := make([]Term, arity)
 	n = 2
 	var i uint8
@@ -177,12 +193,21 @@ func readSmallTuple(buf []byte) (t Tuple, n int) {
 		n += nr
 	}
 	t = Tuple(tuple)
+	log.Printf("Read small tuple: %+v", t)
 	return
 }
 
 func readSmallInteger(buf []byte) (t Int, n int) {
 	t = Int(buf[1])
 	n = 2
+	log.Printf("Read small integer: %+v", t)
+	return
+}
+
+func readInteger(buf []byte) (t Int, n int) {
+	t = Int(binary.BigEndian.Uint32(buf[1:5]))
+	n = 5
+	log.Printf("Read integer: %+v", t)
 	return
 }
 
@@ -195,6 +220,26 @@ func readPid(buf []byte) (t Pid, n int) {
 	n += 4
 	t.Creation = buf[n]
 	n += 1
+	log.Printf("Read pid: %+v", t)
+	return
+}
+
+func readNewReference(buf []byte) (t Reference, n int) {
+	length := binary.BigEndian.Uint16(buf[1:3])
+	n += 3
+	var pn int
+	t.Node, pn = readAtom(buf[n:])
+	n += pn
+
+	t.Creation = buf[n]
+	n += 1
+
+	t.Id = make([]uint32, length)
+	for i := 0; i < int(length); i++ {
+		t.Id[i] = binary.BigEndian.Uint32(buf[n:n+4])
+		n += 4
+	}
+	log.Printf("Read reference: %+v", t)
 	return
 }
 
@@ -202,5 +247,13 @@ func readAtom(buf []byte) (t Atom, n int) {
 	length := binary.BigEndian.Uint16(buf[1:3])
 	t = Atom(buf[3:length+3])
 	n = 3 + int(length)
+	log.Printf("Read atom: %+v", t)
+	return
+}
+
+func readNil(buf []byte) (t List, n int) {
+	t = List(make([]Term, 0))
+	n = 1
+	log.Printf("Read empty list: %+v", t)
 	return
 }

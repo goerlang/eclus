@@ -87,22 +87,32 @@ func NewNodeDesc(name, cookie string, isHidden bool) (nd *NodeDesc) {
 }
 
 
-func (currNd *NodeDesc) HandleMessage(c net.Conn) (err error) {
-	buf := make([]byte, 1024)
+func (currNd *NodeDesc) ReadMessage(c net.Conn) (err error) {
+	rcbuf := new(bytes.Buffer)
 
-	var n int
-	n, err = c.Read(buf)
-	if err != nil {
-		c.Close()
-		log.Printf("Stop enode loop (%d): %v", n, err)
-		return
+	var buf []byte
+
+	for {
+		var n int
+		rbuf := make([]byte, 1024)
+		n, err = c.Read(rbuf)
+
+		if (err != nil) && (n == 0) {
+			log.Printf("Stop enode loop (%d): %v", n, err)
+			return
+		}
+		rcbuf.Write(rbuf[:n])
+		if n < len(rbuf) {
+			break
+		}
 	}
 
+	buf = rcbuf.Bytes()
 
 	switch currNd.state {
 	case HANDSHAKE:
 		length := binary.BigEndian.Uint16(buf[0:2])
-		msg := buf[2:n]
+		msg := buf[2:]
 		log.Printf("Read from enode %d: %v", length, msg)
 
 		sendData := func(data []byte) (int, error) {
@@ -143,14 +153,13 @@ func (currNd *NodeDesc) HandleMessage(c net.Conn) (err error) {
 					return
 				}
 			} else {
-				c.Close()
 				err = errors.New("bad handshake")
 				return
 			}
 		}
 	case CONNECTED:
 		length := binary.BigEndian.Uint32(buf[0:4])
-		msg := buf[4:n]
+		msg := buf[4:]
 		log.Printf("Read from enode %d: %v", length, msg)
 
 		if length == 0 {
@@ -160,10 +169,17 @@ func (currNd *NodeDesc) HandleMessage(c net.Conn) (err error) {
 
 		switch msg[0] {
 		case 'p':
-			res := currNd.read_TERM(msg[1:])
-				log.Printf("READ TERM: %+v", res)
+			pos := 1
+			log.Printf("BIN TERM: %v", msg[pos:])
+			for {
+				res, nr := currNd.read_TERM(msg[pos:])
+				if nr == 0 {
+					break
+				}
+				pos += nr
+				log.Printf("READ TERM (%d): %+v", nr, res)
 			}
-
+		}
 	}
 	return
 }
@@ -266,7 +282,7 @@ func (nd NodeDesc) Flags() (flags []string) {
 	return
 }
 
-func (currNd *NodeDesc) read_TERM(msg []byte) (t term.Term) {
-	t = term.Read(msg)
+func (currNd *NodeDesc) read_TERM(msg []byte) (t term.Term, n int) {
+	t, n = term.Read(msg)
 	return
 }
