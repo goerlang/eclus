@@ -234,7 +234,7 @@ func (currNd *NodeDesc) read_SEND_CHALLENGE_REPLY(nd *NodeDesc, msg []byte) (isO
 		isOk = true
 		currNd.state = CONNECTED
 	} else {
-		log.Printf("BAD HANDSHAKE: digestA: %+v, digestB: %+v")
+		log.Printf("BAD HANDSHAKE: digestA: %+v, digestB: %+v", digestA, digestB)
 		isOk = false
 	}
 	return
