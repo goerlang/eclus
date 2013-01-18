@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"erlang/term"
 	"errors"
+	"flag"
 	"io"
 	"log"
 	"math/rand"
@@ -14,6 +15,21 @@ import (
 	"strings"
 	"time"
 )
+
+
+var dTrace bool
+
+func init() {
+	flag.BoolVar(&dTrace, "erlang.dist.trace", false, "trace erlang distribution protocol")
+}
+
+
+func dLog(f string, a ...interface{}) {
+	if dTrace {
+		log.Printf(f, a...)
+	}
+}
+
 
 type flagId uint32
 
@@ -87,7 +103,7 @@ func NewNodeDesc(name, cookie string, isHidden bool) (nd *NodeDesc) {
 	return nd
 }
 
-func (currNd *NodeDesc) ReadMessage(c net.Conn) (err error) {
+func (currNd *NodeDesc) ReadMessage(c net.Conn) (ts []term.Term, err error) {
 	rcbuf := new(bytes.Buffer)
 
 	var buf []byte
@@ -98,7 +114,7 @@ func (currNd *NodeDesc) ReadMessage(c net.Conn) (err error) {
 		n, err = c.Read(rbuf)
 
 		if (err != nil) && (n == 0) {
-			log.Printf("Stop enode loop (%d): %v", n, err)
+			dLog("Stop enode loop (%d): %v", n, err)
 			return
 		}
 		rcbuf.Write(rbuf[:n])
@@ -113,13 +129,13 @@ func (currNd *NodeDesc) ReadMessage(c net.Conn) (err error) {
 	case HANDSHAKE:
 		length := binary.BigEndian.Uint16(buf[0:2])
 		msg := buf[2:]
-		log.Printf("Read from enode %d: %v", length, msg)
+		dLog("Read from enode %d: %v", length, msg)
 
 		sendData := func(data []byte) (int, error) {
 			reply := make([]byte, len(data)+2)
 			binary.BigEndian.PutUint16(reply[0:2], uint16(len(data)))
 			copy(reply[2:], data)
-			log.Printf("Write to enode: %v", reply)
+			dLog("Write to enode: %v", reply)
 			return c.Write(reply)
 		}
 
@@ -160,24 +176,26 @@ func (currNd *NodeDesc) ReadMessage(c net.Conn) (err error) {
 	case CONNECTED:
 		length := binary.BigEndian.Uint32(buf[0:4])
 		msg := buf[4:]
-		log.Printf("Read from enode %d: %v", length, msg)
+		dLog("Read from enode %d: %v", length, msg)
 
 		if length == 0 {
-			log.Printf("Keepalive")
+			dLog("Keepalive")
 			return
 		}
 
 		switch msg[0] {
 		case 'p':
 			pos := 1
-			log.Printf("BIN TERM: %v", msg[pos:])
+			dLog("BIN TERM: %v", msg[pos:])
+			ts = make([]term.Term, 0)
 			for {
 				res, nr := currNd.read_TERM(msg[pos:])
 				if nr == 0 {
 					break
 				}
+				ts = append(ts, res)
 				pos += nr
-				log.Printf("READ TERM (%d): %+v", nr, res)
+				dLog("READ TERM (%d): %+v", nr, res)
 			}
 		}
 	}
@@ -232,7 +250,7 @@ func (currNd *NodeDesc) read_SEND_CHALLENGE_REPLY(nd *NodeDesc, msg []byte) (isO
 		isOk = true
 		currNd.state = CONNECTED
 	} else {
-		log.Printf("BAD HANDSHAKE: digestA: %+v, digestB: %+v", digestA, digestB)
+		dLog("BAD HANDSHAKE: digestA: %+v, digestB: %+v", digestA, digestB)
 		isOk = false
 	}
 	return

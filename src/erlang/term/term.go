@@ -2,9 +2,24 @@ package term
 
 import (
 	"encoding/binary"
+	"flag"
 	"io"
 	"log"
 )
+
+
+var tTrace bool = false
+
+func init() {
+	flag.BoolVar(&tTrace, "erlang.term.trace", false, "trace erlang term format")
+}
+
+func tLog(f string, a ...interface{}) {
+	if tTrace {
+		log.Printf(f, a...)
+	}
+}
+
 
 type ErlType byte
 
@@ -174,7 +189,7 @@ func readTerm(buf []byte) (t Term, n int) {
 	case ErlTypeNil:
 		t, n = readNil(buf)
 	default:
-		log.Printf("Term not supported: %v", buf)
+		tLog("Term not supported: %v", buf)
 	}
 	return
 }
@@ -190,21 +205,21 @@ func readSmallTuple(buf []byte) (t Tuple, n int) {
 		n += nr
 	}
 	t = Tuple(tuple)
-	log.Printf("Read small tuple: %#v", t)
+	tLog("Read small tuple: %#v", t)
 	return
 }
 
 func readSmallInteger(buf []byte) (t Int, n int) {
 	t = Int(buf[1])
 	n = 2
-	log.Printf("Read small integer: %#v", t)
+	tLog("Read small integer: %#v", t)
 	return
 }
 
 func readInteger(buf []byte) (t Int, n int) {
 	t = Int(binary.BigEndian.Uint32(buf[1:5]))
 	n = 5
-	log.Printf("Read integer: %#v", t)
+	tLog("Read integer: %#v", t)
 	return
 }
 
@@ -217,7 +232,7 @@ func readPid(buf []byte) (t Pid, n int) {
 	n += 4
 	t.Creation = buf[n]
 	n += 1
-	log.Printf("Read pid: %#v", t)
+	tLog("Read pid: %#v", t)
 	return
 }
 
@@ -236,7 +251,7 @@ func readNewReference(buf []byte) (t Reference, n int) {
 		t.Id[i] = binary.BigEndian.Uint32(buf[n : n+4])
 		n += 4
 	}
-	log.Printf("Read reference: %#v", t)
+	tLog("Read reference: %#v", t)
 	return
 }
 
@@ -244,13 +259,13 @@ func readAtom(buf []byte) (t Atom, n int) {
 	length := binary.BigEndian.Uint16(buf[1:3])
 	t = Atom(buf[3 : length+3])
 	n = 3 + int(length)
-	log.Printf("Read atom: %#v", t)
+	tLog("Read atom: %#v", t)
 	return
 }
 
 func readNil(buf []byte) (t List, n int) {
 	t = List(make([]Term, 0))
 	n = 1
-	log.Printf("Read empty list: %#v", t)
+	tLog("Read empty list: %#v", t)
 	return
 }
