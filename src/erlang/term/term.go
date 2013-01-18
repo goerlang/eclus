@@ -193,21 +193,21 @@ func readSmallTuple(buf []byte) (t Tuple, n int) {
 		n += nr
 	}
 	t = Tuple(tuple)
-	log.Printf("Read small tuple: %+v", t)
+	log.Printf("Read small tuple: %#v", t)
 	return
 }
 
 func readSmallInteger(buf []byte) (t Int, n int) {
 	t = Int(buf[1])
 	n = 2
-	log.Printf("Read small integer: %+v", t)
+	log.Printf("Read small integer: %#v", t)
 	return
 }
 
 func readInteger(buf []byte) (t Int, n int) {
 	t = Int(binary.BigEndian.Uint32(buf[1:5]))
 	n = 5
-	log.Printf("Read integer: %+v", t)
+	log.Printf("Read integer: %#v", t)
 	return
 }
 
@@ -220,7 +220,7 @@ func readPid(buf []byte) (t Pid, n int) {
 	n += 4
 	t.Creation = buf[n]
 	n += 1
-	log.Printf("Read pid: %+v", t)
+	log.Printf("Read pid: %#v", t)
 	return
 }
 
@@ -239,7 +239,7 @@ func readNewReference(buf []byte) (t Reference, n int) {
 		t.Id[i] = binary.BigEndian.Uint32(buf[n:n+4])
 		n += 4
 	}
-	log.Printf("Read reference: %+v", t)
+	log.Printf("Read reference: %#v", t)
 	return
 }
 
@@ -247,13 +247,13 @@ func readAtom(buf []byte) (t Atom, n int) {
 	length := binary.BigEndian.Uint16(buf[1:3])
 	t = Atom(buf[3:length+3])
 	n = 3 + int(length)
-	log.Printf("Read atom: %+v", t)
+	log.Printf("Read atom: %#v", t)
 	return
 }
 
 func readNil(buf []byte) (t List, n int) {
 	t = List(make([]Term, 0))
 	n = 1
-	log.Printf("Read empty list: %+v", t)
+	log.Printf("Read empty list: %#v", t)
 	return
 }
