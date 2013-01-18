@@ -73,6 +73,12 @@ func (t Tuple) Write(w io.Writer) (err error) {
 	return
 }
 
+func (t Tuple) Element(n int) (ts Term) {
+	// Start index from 1, like in Erlang
+	ts = t[n-1]
+	return
+}
+
 type List []Term
 
 func (t List) Write(w io.Writer) (err error) {
