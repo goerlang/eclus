@@ -46,3 +46,26 @@ Header is: `|  Node name  |  Port of node  |  File descriptor of node connection
 [Distribution Protocol](http://www.erlang.org/doc/apps/erts/erl_dist_protocol.html)
 
 Source of `otp/lib/kernel/src/dist_util.erl`
+
+Run eclus with embedded node:
+
+```sh
+    $ eclus -node -node-name 'epmd@localhost' -node-cookie 123asd [-erlang.node.trace] [-erlang.dist.trace] [-erlang.term.trace]
+```
+
+Options `-erlang.node.trace`, `-erlang.dist.trace`, `-erlang.term.trace` will print debug info for correspond subsystems.
+
+Then run Erlang node with the same cookie:
+
+```sh
+    $ erl -sname asd@localhost -setcookie 123asd
+```
+
+Now type `net_adm:ping(epmd@localhost).` in Erlang node:
+
+```erlang
+    (asd@localhost)1> net_adm:ping(epmd@localhost).
+    pong
+```
+
+You see `pong` reply from Go-node!
