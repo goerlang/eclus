@@ -18,7 +18,7 @@ Flags:
 
 ## CLI ##
 
-If `eclus` cannot bind to specified port, it run in CLI mode.
+If `eclus` cannot bind to specified port, it runs in CLI mode.
 
 To check registered names on epmd, run `eclus` with flag `-names`:
 
