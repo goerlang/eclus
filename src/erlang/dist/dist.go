@@ -120,6 +120,19 @@ func (currNd *NodeDesc) ReadMessage(c net.Conn) (ts []term.Term, err error) {
 		}
 	}
 
+	sendData := func(headerLen int, data []byte) (int, error) {
+		reply := make([]byte, len(data)+headerLen)
+		if headerLen == 2 {
+			binary.BigEndian.PutUint16(reply[0:headerLen], uint16(len(data)))
+		} else {
+			binary.BigEndian.PutUint32(reply[0:headerLen], uint32(len(data)))
+		}
+		copy(reply[headerLen:], data)
+		dLog("Write to enode: %v", reply)
+		return c.Write(reply)
+	}
+
+
 	buf = rcbuf.Bytes()
 
 	switch currNd.state {
@@ -128,20 +141,12 @@ func (currNd *NodeDesc) ReadMessage(c net.Conn) (ts []term.Term, err error) {
 		msg := buf[2:]
 		dLog("Read from enode %d: %v", length, msg)
 
-		sendData := func(data []byte) (int, error) {
-			reply := make([]byte, len(data)+2)
-			binary.BigEndian.PutUint16(reply[0:2], uint16(len(data)))
-			copy(reply[2:], data)
-			dLog("Write to enode: %v", reply)
-			return c.Write(reply)
-		}
-
 		switch msg[0] {
 		case 'n':
 			sn := currNd.read_SEND_NAME(msg)
 			// Statuses: ok, nok, ok_simultaneous, alive, not_allowed
 			sok := currNd.compose_SEND_STATUS(sn, true)
-			_, err = sendData(sok)
+			_, err = sendData(2, sok)
 			if err != nil {
 				return
 			}
@@ -151,7 +156,7 @@ func (currNd *NodeDesc) ReadMessage(c net.Conn) (ts []term.Term, err error) {
 
 			// Now send challenge
 			challenge := currNd.compose_SEND_CHALLENGE(sn)
-			sendData(challenge)
+			sendData(2, challenge)
 			if err != nil {
 				return
 			}
@@ -161,7 +166,7 @@ func (currNd *NodeDesc) ReadMessage(c net.Conn) (ts []term.Term, err error) {
 			ok := currNd.read_SEND_CHALLENGE_REPLY(sn, msg)
 			if ok {
 				challengeAck := currNd.compose_SEND_CHALLENGE_ACK(sn)
-				sendData(challengeAck)
+				sendData(2, challengeAck)
 				if err != nil {
 					return
 				}
@@ -179,6 +184,7 @@ func (currNd *NodeDesc) ReadMessage(c net.Conn) (ts []term.Term, err error) {
 
 		if length == 0 {
 			dLog("Keepalive")
+			sendData(4, []byte{})
 			return
 		}
 
