@@ -56,6 +56,11 @@ type Term interface {
 	Write(io.Writer) error
 }
 
+func WriteTerm(t Term, w io.Writer) {
+	w.Write([]byte{ErlFormatVersion})
+	t.Write(w)
+}
+
 type Tuple []Term
 
 func (t Tuple) Write(w io.Writer) (err error) {
@@ -125,6 +130,13 @@ type Pid struct {
 
 func (t Pid) Write(w io.Writer) (err error) {
 	// TODO: PID serialization
+	t.Node.Write(w)
+	buf := make([]byte, 4)
+	binary.BigEndian.PutUint32(buf, t.Id)
+	w.Write(buf)
+	binary.BigEndian.PutUint32(buf, t.Serial)
+	w.Write(buf)
+	w.Write([]byte{t.Creation})
 	return
 }
 
@@ -146,7 +158,15 @@ type Reference struct {
 }
 
 func (t Reference) Write(w io.Writer) (err error) {
-	// TODO: Reference serialization
+	// TODO: PID serialization
+	t.Node.Write(w)
+	w.Write([]byte{t.Creation})
+
+	buf := make([]byte, 4)
+	for _, v := range t.Id {
+		binary.BigEndian.PutUint32(buf, v)
+		w.Write(buf)
+	}
 	return
 }
 

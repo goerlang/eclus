@@ -168,6 +168,8 @@ func (currNd *NodeDesc) ReadMessage(c net.Conn) (ts []term.Term, err error) {
 				if err != nil {
 					return
 				}
+				dLog("Remote: %#v", sn)
+				ts = []term.Term{term.Term(term.Tuple{term.Atom("$go_set_node"), term.Atom(sn.Name)})}
 			} else {
 				err = errors.New("bad handshake")
 				return
@@ -195,12 +197,33 @@ func (currNd *NodeDesc) ReadMessage(c net.Conn) (ts []term.Term, err error) {
 				}
 				ts = append(ts, res)
 				pos += nr
-				dLog("READ TERM (%d): %+v", nr, res)
+				dLog("READ TERM (%d): %#v", nr, res)
 			}
 		}
 	}
 	return
 }
+
+func (currNd *NodeDesc) WriteMessage(c net.Conn, ts []term.Term) (err error) {
+	sendData := func(data []byte) (int, error) {
+		reply := make([]byte, len(data)+4)
+		binary.BigEndian.PutUint32(reply[0:4], uint32(len(data)))
+		copy(reply[4:], data)
+		dLog("Write to enode: %v", reply)
+		return c.Write(reply)
+	}
+
+	buf := new(bytes.Buffer)
+	buf.Write([]byte{'p'})
+	for _, v := range ts {
+		term.WriteTerm(v, buf)
+	}
+	dLog("WRITE: %#v: %#v", ts, buf.Bytes())
+	n, err := sendData(buf.Bytes())
+	dLog("W: %d, ERR: %#v", n, err)
+	return nil
+}
+
 
 func (nd *NodeDesc) compose_SEND_NAME() (msg []byte) {
 	msg = make([]byte, 7+len(nd.Name))
