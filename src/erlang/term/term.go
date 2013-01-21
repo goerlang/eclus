@@ -7,7 +7,6 @@ import (
 	"log"
 )
 
-
 var tTrace bool = false
 
 func init() {
@@ -19,7 +18,6 @@ func tLog(f string, a ...interface{}) {
 		log.Printf(f, a...)
 	}
 }
-
 
 type ErlType byte
 
@@ -129,7 +127,7 @@ type Pid struct {
 }
 
 func (t Pid) Write(w io.Writer) (err error) {
-	// TODO: PID serialization
+	w.Write([]byte{ErlTypePid})
 	t.Node.Write(w)
 	buf := make([]byte, 4)
 	binary.BigEndian.PutUint32(buf, t.Id)
@@ -158,11 +156,14 @@ type Reference struct {
 }
 
 func (t Reference) Write(w io.Writer) (err error) {
-	// TODO: PID serialization
+	w.Write([]byte{ErlTypeNewReference})
+	buf := make([]byte, 2)
+	binary.BigEndian.PutUint16(buf, uint16(len(t.Id)))
+	w.Write(buf)
 	t.Node.Write(w)
 	w.Write([]byte{t.Creation})
 
-	buf := make([]byte, 4)
+	buf = make([]byte, 4)
 	for _, v := range t.Id {
 		binary.BigEndian.PutUint32(buf, v)
 		w.Write(buf)
