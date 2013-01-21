@@ -16,20 +16,17 @@ import (
 	"time"
 )
 
-
 var dTrace bool
 
 func init() {
 	flag.BoolVar(&dTrace, "erlang.dist.trace", false, "trace erlang distribution protocol")
 }
 
-
 func dLog(f string, a ...interface{}) {
 	if dTrace {
 		log.Printf(f, a...)
 	}
 }
-
 
 type flagId uint32
 
@@ -219,11 +216,9 @@ func (currNd *NodeDesc) WriteMessage(c net.Conn, ts []term.Term) (err error) {
 		term.WriteTerm(v, buf)
 	}
 	dLog("WRITE: %#v: %#v", ts, buf.Bytes())
-	n, err := sendData(buf.Bytes())
-	dLog("W: %d, ERR: %#v", n, err)
+	sendData(buf.Bytes())
 	return nil
 }
-
 
 func (nd *NodeDesc) compose_SEND_NAME() (msg []byte) {
 	msg = make([]byte, 7+len(nd.Name))
