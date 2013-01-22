@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/binary"
-	"erlang/term"
 	"errors"
 	"flag"
+	"github.com/goerlang/etf/read"
+	erl "github.com/goerlang/etf/types"
+	"github.com/goerlang/etf/write"
 	"io"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net"
@@ -31,21 +34,21 @@ func dLog(f string, a ...interface{}) {
 type flagId uint32
 
 const (
-	PUBLISHED           = flagId(0x1)
-	ATOM_CACHE          = 0x2
-	EXTENDED_REFERENCES = 0x4
-	DIST_MONITOR        = 0x8
-	FUN_TAGS            = 0x10
-	DIST_MONITOR_NAME   = 0x20
-	HIDDEN_ATOM_CACHE   = 0x40
-	NEW_FUN_TAGS        = 0x80
-	EXTENDED_PIDS_PORTS = 0x100
-	EXPORT_PTR_TAG      = 0x200
-	BIT_BINARIES        = 0x400
-	NEW_FLOATS          = 0x800
-	UNICODE_IO          = 0x1000
-	DIST_HDR_ATOM_CACHE = 0x2000
-	SMALL_ATOM_TAGS     = 0x4000
+	PUBLISHED           flagId = 0x1
+	ATOM_CACHE                 = 0x2
+	EXTENDED_REFERENCES        = 0x4
+	DIST_MONITOR               = 0x8
+	FUN_TAGS                   = 0x10
+	DIST_MONITOR_NAME          = 0x20
+	HIDDEN_ATOM_CACHE          = 0x40
+	NEW_FUN_TAGS               = 0x80
+	EXTENDED_PIDS_PORTS        = 0x100
+	EXPORT_PTR_TAG             = 0x200
+	BIT_BINARIES               = 0x400
+	NEW_FLOATS                 = 0x800
+	UNICODE_IO                 = 0x1000
+	DIST_HDR_ATOM_CACHE        = 0x2000
+	SMALL_ATOM_TAGS            = 0x4000
 )
 
 type nodeFlag flagId
@@ -100,32 +103,17 @@ func NewNodeDesc(name, cookie string, isHidden bool) (nd *NodeDesc) {
 	return nd
 }
 
-func (currNd *NodeDesc) ReadMessage(c net.Conn) (ts []term.Term, err error) {
-	rcbuf := new(bytes.Buffer)
-
-	var buf []byte
-
-	for {
-		var n int
-		rbuf := make([]byte, 1024)
-		n, err = c.Read(rbuf)
-
-		if (err != nil) && (n == 0) {
-			dLog("Stop enode loop (%d): %v", n, err)
-			return
-		}
-		rcbuf.Write(rbuf[:n])
-		if n < len(rbuf) {
-			break
-		}
-	}
-
-	buf = rcbuf.Bytes()
-
+func (currNd *NodeDesc) ReadMessage(c net.Conn) (ts []erl.Term, err error) {
 	switch currNd.state {
 	case HANDSHAKE:
-		length := binary.BigEndian.Uint16(buf[0:2])
-		msg := buf[2:]
+		var length uint16
+		if err = binary.Read(c, binary.BigEndian, &length); err != nil {
+			return
+		}
+		msg := make([]byte, length)
+		if _, err = io.ReadFull(c, msg); err != nil {
+			return
+		}
 		dLog("Read from enode %d: %v", length, msg)
 
 		sendData := func(data []byte) (int, error) {
@@ -166,42 +154,55 @@ func (currNd *NodeDesc) ReadMessage(c net.Conn) (ts []term.Term, err error) {
 					return
 				}
 				dLog("Remote: %#v", sn)
-				ts = []term.Term{term.Term(term.Tuple{term.Atom("$go_set_node"), term.Atom(sn.Name)})}
+				ts = []erl.Term{erl.Term(erl.Tuple{erl.Atom("$go_set_node"), erl.Atom(sn.Name)})}
 			} else {
 				err = errors.New("bad handshake")
 				return
 			}
 		}
-	case CONNECTED:
-		length := binary.BigEndian.Uint32(buf[0:4])
-		msg := buf[4:]
-		dLog("Read from enode %d: %v", length, msg)
 
+	case CONNECTED:
+		var length uint32
+		if err = binary.Read(c, binary.BigEndian, &length); err != nil {
+			return
+		}
 		if length == 0 {
 			dLog("Keepalive")
 			return
 		}
+		r := &io.LimitedReader{c, int64(length)}
+		msg := make([]byte, 1)
+		if _, err = io.ReadFull(r, msg); err != nil {
+			return
+		}
+		dLog("Read from enode %d: %s", length, string(msg))
 
 		switch msg[0] {
 		case 'p':
-			pos := 1
-			dLog("BIN TERM: %v", msg[pos:])
-			ts = make([]term.Term, 0)
+			//msg, err = ioutil.ReadAll(r)
+			//dLog("BUG HERE: %v", msg)
+			ts = make([]erl.Term, 0)
 			for {
-				res, nr := currNd.read_TERM(msg[pos:])
-				if nr == 0 {
+				var res erl.Term
+				if res, err = currNd.read_TERM(r); err != nil {
 					break
 				}
 				ts = append(ts, res)
-				pos += nr
-				dLog("READ TERM (%d): %#v", nr, res)
+				dLog("READ TERM: %#v", res)
 			}
+			if err == io.EOF {
+				err = nil
+			}
+
+		default:
+			_, err = ioutil.ReadAll(r)
 		}
 	}
+
 	return
 }
 
-func (currNd *NodeDesc) WriteMessage(c net.Conn, ts []term.Term) (err error) {
+func (currNd *NodeDesc) WriteMessage(c net.Conn, ts []erl.Term) (err error) {
 	sendData := func(data []byte) (int, error) {
 		reply := make([]byte, len(data)+4)
 		binary.BigEndian.PutUint32(reply[0:4], uint32(len(data)))
@@ -213,7 +214,8 @@ func (currNd *NodeDesc) WriteMessage(c net.Conn, ts []term.Term) (err error) {
 	buf := new(bytes.Buffer)
 	buf.Write([]byte{'p'})
 	for _, v := range ts {
-		term.WriteTerm(v, buf)
+		buf.Write([]byte{erl.EtVersion})
+		write.Term(buf, v)
 	}
 	dLog("WRITE: %#v: %#v", ts, buf.Bytes())
 	sendData(buf.Bytes())
@@ -319,7 +321,11 @@ func (nd NodeDesc) Flags() (flags []string) {
 	return
 }
 
-func (currNd *NodeDesc) read_TERM(msg []byte) (t term.Term, n int) {
-	t, n = term.Read(msg)
+func (currNd *NodeDesc) read_TERM(r io.Reader) (t erl.Term, err error) {
+	b := make([]byte, 1)
+	_, err = io.ReadFull(r, b)
+	if err == nil {
+		t, err = read.Term(r)
+	}
 	return
 }
