@@ -39,14 +39,6 @@ Header is: `|  Node name  |  Port of node  |  File descriptor of node connection
 
 # Go-node #
 
-## in progress... ##
-
-[External Term Format](http://www.erlang.org/doc/apps/erts/erl_ext_dist.html)
-
-[Distribution Protocol](http://www.erlang.org/doc/apps/erts/erl_dist_protocol.html)
-
-Source of `otp/lib/kernel/src/dist_util.erl`
-
 Run eclus with embedded node:
 
 ```sh
@@ -61,6 +53,8 @@ Then run Erlang node with the same cookie:
     $ erl -sname asd@localhost -setcookie 123asd
 ```
 
+## Ping ##
+
 Now type `net_adm:ping(epmd@localhost).` in Erlang node:
 
 ```erlang
@@ -69,3 +63,26 @@ Now type `net_adm:ping(epmd@localhost).` in Erlang node:
 ```
 
 You see `pong` reply from Go-node!
+
+## Implement your own GenServer ##
+
+See `src/eclus/esrv.go`. It is GenServer behaviour implementation which you can use like original `gen_server` process from Erlang/OTP.
+
+To run this process first create pointer to structure which implements all methods for this behaviour:
+
+```go
+    eSrv := new(eclusSrv)
+```
+
+Then call `Spawn` method on published node:
+
+```go
+    enode.Spawn(eSrv)
+```
+
+Now you can interact with this process from Erlang-node using `gen_server:call/2`, gen_server:cast/2` or just send message to it:
+
+```erlang
+    (asd@localhost)3> gen_server:call({eclus, epmd@localhost}, message).
+    {ok,eclus_reply,message}
+```
