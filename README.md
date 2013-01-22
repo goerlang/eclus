@@ -50,10 +50,10 @@ Source of `otp/lib/kernel/src/dist_util.erl`
 Run eclus with embedded node:
 
 ```sh
-    $ eclus -node -node-name 'epmd@localhost' -node-cookie 123asd [-erlang.node.trace] [-erlang.dist.trace] [-erlang.term.trace]
+    $ eclus -node -node-name 'epmd@localhost' -node-cookie 123asd [-erlang.node.trace] [-erlang.dist.trace]
 ```
 
-Options `-erlang.node.trace`, `-erlang.dist.trace`, `-erlang.term.trace` will print debug info for correspond subsystems.
+Options `-erlang.node.trace`, `-erlang.dist.trace` will print debug info for correspond subsystems.
 
 Then run Erlang node with the same cookie:
 
