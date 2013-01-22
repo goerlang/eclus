@@ -25,7 +25,7 @@ func (es *eclusSrv) HandleCast(message *erl.Term) {
 
 func (es *eclusSrv) HandleCall(message *erl.Term, from *erl.Tuple) (reply *erl.Term) {
 	log.Printf("ECLUS_SRV: HandleCall: %#v, From: %#v", *message, *from)
-	replyTerm := erl.Term(erl.Tuple{erl.Atom("ok"), erl.Atom("eclus_reply")})
+	replyTerm := erl.Term(erl.Tuple{erl.Atom("ok"), erl.Atom("eclus_reply"), *message})
 	reply = &replyTerm
 	return
 }
