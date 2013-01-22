@@ -2,8 +2,7 @@ package main
 
 import (
 	"flag"
-	//"fmt"
-	"erlang/node"
+	"github.com/goerlang/node"
 	"log"
 )
 

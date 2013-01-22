@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
-	"erlang/epmd"
+	"github.com/goerlang/epmd"
 	"flag"
 	"log"
 	"net"
