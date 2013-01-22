@@ -28,6 +28,8 @@ func runNode() (enode *node.Node) {
 			log.Printf("Cannot publish: %s", err)
 			enode = nil
 		}
+		eSrv := new(eclusSrv)
+		enode.Spawn(eSrv)
 	}
 	return
 }
