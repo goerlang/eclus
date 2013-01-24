@@ -10,10 +10,6 @@ type eclusSrv struct {
 	node.GenServerImpl
 }
 
-func (es *eclusSrv) Behaviour() (node.Behaviour, map[string]interface{}) {
-	return es, es.Options()
-}
-
 func (es *eclusSrv) Init(args ...interface{}) {
 	log.Printf("ECLUS_SRV: Init: %#v", args)
 	es.Node.Register(erl.Atom("eclus"), es.Self)
