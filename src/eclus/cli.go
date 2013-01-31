@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"reflect"
@@ -39,8 +40,8 @@ func epmCli() {
 		return
 	}
 	c.Write(req)
-	buf := make([]byte, 1024)
-	_, err = c.Read(buf)
+
+	buf, err := ioutil.ReadAll(c)
 	if err != nil {
 		log.Fatal(err)
 	}
