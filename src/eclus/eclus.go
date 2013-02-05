@@ -3,8 +3,8 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/goerlang/epmd"
 	"flag"
+	"github.com/goerlang/epmd"
 	"log"
 	"net"
 	"strconv"
