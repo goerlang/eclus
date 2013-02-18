@@ -21,10 +21,20 @@ const (
 	REQ_NAMES = cliMessageId('N') // 78
 )
 
+var isCli bool
 var isNames bool
 
 func init() {
+	flag.BoolVar(&isCli, "cli", false, "CLI enable")
 	flag.BoolVar(&isNames, "names", false, "(CLI) print nodes info: name | port | fd | state | creation | state change date")
+}
+
+func cliEnabled() bool {
+	return isCli
+}
+
+func eclusCli() {
+	epmCli()
 }
 
 func epmCli() {

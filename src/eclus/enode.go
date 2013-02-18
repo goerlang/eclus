@@ -21,15 +21,13 @@ func nodeEnabled() bool {
 }
 
 func runNode() (enode *node.Node) {
-	if enableNode {
-		enode = node.NewNode(nodeName, nodeCookie)
-		err := enode.Publish(5858)
-		if err != nil {
-			log.Printf("Cannot publish: %s", err)
-			enode = nil
-		}
-		eSrv := new(eclusSrv)
-		enode.Spawn(eSrv)
+	enode = node.NewNode(nodeName, nodeCookie)
+	err := enode.Publish(5858)
+	if err != nil {
+		log.Printf("Cannot publish: %s", err)
+		enode = nil
 	}
+	eSrv := new(eclusSrv)
+	enode.Spawn(eSrv)
 	return
 }

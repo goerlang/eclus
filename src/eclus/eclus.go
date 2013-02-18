@@ -11,12 +11,14 @@ import (
 	"time"
 )
 
+var noEpmd bool
 var listenPort string
 var regLimit int
 var unregTTL int
 
 func init() {
 	flag.StringVar(&listenPort, "port", "4369", "listen port")
+	flag.BoolVar(&noEpmd, "no-epmd", false, "disable epmd")
 	flag.IntVar(&regLimit, "nodes-limit", 1000, "limit size of registration table to prune unregistered nodes")
 	flag.IntVar(&unregTTL, "unreg-ttl", 10, "prune unregistered nodes if unregistration older than this value in minutes")
 }
@@ -36,28 +38,39 @@ func main() {
 	flag.Parse()
 	stopCh := make(chan bool)
 
-	l, err := net.Listen("tcp", net.JoinHostPort("", listenPort))
-	if err != nil {
-		epmCli()
-	} else {
-		epm := make(chan regReq, 10)
-		go epmReg(epm)
-		go func() {
-			for {
-				conn, err := l.Accept()
-				log.Printf("Accept new")
-				if err != nil {
-					log.Printf(err.Error())
-				} else {
-					go mLoop(conn, epm)
-				}
+	if !cliEnabled() {
+		var err error
+		var l net.Listener
+		if !noEpmd {
+			l, err = net.Listen("tcp", net.JoinHostPort("", listenPort))
+		}
+		if err != nil || !noEpmd {
+			// Cannot bind, eclus instance already running, connect to it
+			eclusCli()
+		} else {
+			if !noEpmd {
+				epm := make(chan regReq, 10)
+				go epmReg(epm)
+				go func() {
+					for {
+						conn, err := l.Accept()
+						log.Printf("Accept new")
+						if err != nil {
+							log.Printf(err.Error())
+						} else {
+							go mLoop(conn, epm)
+						}
+					}
+				}()
 			}
-		}()
+			if nodeEnabled() {
+				go runNode()
+			}
+			<-stopCh
+		}
+	} else {
+		eclusCli()
 	}
-	if nodeEnabled() {
-		go runNode()
-	}
-	<-stopCh
 }
 
 type nodeRec struct {
