@@ -9,11 +9,13 @@ import (
 var enableNode bool
 var nodeName string
 var nodeCookie string
+var nodePort int
 
 func init() {
 	flag.BoolVar(&enableNode, "node", false, "start erlang node")
 	flag.StringVar(&nodeName, "node-name", "", "name of erlang node")
 	flag.StringVar(&nodeCookie, "node-cookie", "", "cookie of erlang node")
+	flag.IntVar(&nodePort, "node-port", 5858, "port of erlang node")
 }
 
 func nodeEnabled() bool {
@@ -22,7 +24,7 @@ func nodeEnabled() bool {
 
 func runNode() (enode *node.Node) {
 	enode = node.NewNode(nodeName, nodeCookie)
-	err := enode.Publish(5858)
+	err := enode.Publish(nodePort)
 	if err != nil {
 		log.Printf("Cannot publish: %s", err)
 		enode = nil
