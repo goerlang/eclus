@@ -7,6 +7,9 @@ import (
 	"github.com/goerlang/epmd"
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"runtime/pprof"
 	"strconv"
 	"time"
 )
@@ -15,12 +18,14 @@ var noEpmd bool
 var listenPort string
 var regLimit int
 var unregTTL int
+var cpuProfile string
 
 func init() {
 	flag.StringVar(&listenPort, "port", "4369", "listen port")
 	flag.BoolVar(&noEpmd, "no-epmd", false, "disable epmd")
 	flag.IntVar(&regLimit, "nodes-limit", 1000, "limit size of registration table to prune unregistered nodes")
 	flag.IntVar(&unregTTL, "unreg-ttl", 10, "prune unregistered nodes if unregistration older than this value in minutes")
+	flag.StringVar(&cpuProfile, "profile-cpu", "", "profile CPU to file")
 }
 
 type regAns struct {
@@ -36,7 +41,24 @@ type regReq struct {
 
 func main() {
 	flag.Parse()
+	if cpuProfile != "" {
+        f, err := os.Create(cpuProfile)
+        if err != nil {
+            log.Fatal(err)
+        }
+		pprof.StartCPUProfile(f)
+        defer pprof.StopCPUProfile()
+	}
 	stopCh := make(chan bool)
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func(){
+		for sig := range c {
+			log.Printf("Signal %#v", sig)
+			stopCh <- true
+		}
+	}()
 
 	if !cliEnabled() {
 		var err error
