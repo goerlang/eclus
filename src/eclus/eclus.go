@@ -42,18 +42,18 @@ type regReq struct {
 func main() {
 	flag.Parse()
 	if cpuProfile != "" {
-        f, err := os.Create(cpuProfile)
-        if err != nil {
-            log.Fatal(err)
-        }
+		f, err := os.Create(cpuProfile)
+		if err != nil {
+			log.Fatal(err)
+		}
 		pprof.StartCPUProfile(f)
-        defer pprof.StopCPUProfile()
+		defer pprof.StopCPUProfile()
 	}
 	stopCh := make(chan bool)
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
-	go func(){
+	go func() {
 		for sig := range c {
 			log.Printf("Signal %#v", sig)
 			stopCh <- true
