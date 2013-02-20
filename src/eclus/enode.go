@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"github.com/goerlang/etf"
 	"github.com/goerlang/node"
 	"log"
 )
@@ -31,5 +32,17 @@ func runNode() (enode *node.Node) {
 	}
 	eSrv := new(eclusSrv)
 	enode.Spawn(eSrv)
+
+	eClos := func(terms etf.List) (r etf.Term) {
+		r = etf.Term(etf.Tuple{etf.Atom("enode"), len(terms)})
+		return
+	}
+
+	err = enode.RpcProvide("enode", "lambda", eClos)
+	if err != nil {
+		log.Printf("Cannot provide function to RPC: %s", err)
+	}
+
+
 	return
 }
