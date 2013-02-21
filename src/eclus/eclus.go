@@ -66,7 +66,7 @@ func main() {
 		if !noEpmd {
 			l, err = net.Listen("tcp", net.JoinHostPort("", listenPort))
 		}
-		if err != nil || !noEpmd {
+		if err != nil || noEpmd {
 			// Cannot bind, eclus instance already running, connect to it
 			eclusCli()
 		} else {
