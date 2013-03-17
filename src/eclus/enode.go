@@ -43,6 +43,5 @@ func runNode() (enode *node.Node) {
 		log.Printf("Cannot provide function to RPC: %s", err)
 	}
 
-
 	return
 }
