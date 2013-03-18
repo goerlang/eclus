@@ -65,10 +65,10 @@ func main() {
 		var l net.Listener
 		if !noEpmd {
 			l, err = net.Listen("tcp", net.JoinHostPort("", listenPort))
-		}
-		if err != nil || noEpmd {
-			// Cannot bind, eclus instance already running, connect to it
-			eclusCli()
+			if err != nil || noEpmd {
+				// Cannot bind, eclus instance already running, connect to it
+				eclusCli()
+			}
 		} else {
 			if !noEpmd {
 				epm := make(chan regReq, 10)
