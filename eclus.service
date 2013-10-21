@@ -7,7 +7,7 @@ Requires=eclus.socket
 Type=simple
 StandardOutput=journal
 StandardError=journal
-ExecStart=/usr/local/bin/eclus
+ExecStart=/usr/bin/eclus
 
 [Install]
 WantedBy=multi-user.target
