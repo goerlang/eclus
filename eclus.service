@@ -1,0 +1,14 @@
+[Unit]
+Description=Etcd Server
+After=network.target
+Requires=eclus.socket
+
+[Service]
+Type=simple
+StandardOutput=journal
+StandardError=journal
+ExecStart=/usr/local/bin/eclus
+
+[Install]
+WantedBy=multi-user.target
+Also=eclus.socket

@@ -1,0 +1,8 @@
+[Unit]
+Description=Etcd Server Activation Socket
+
+[Socket]
+ListenStream=4369
+
+[Install]
+WantedBy=sockets.target
