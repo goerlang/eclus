@@ -1,5 +1,5 @@
 [Unit]
-Description=Etcd Server
+Description=EPMD Server
 After=network.target
 Requires=eclus.socket
 

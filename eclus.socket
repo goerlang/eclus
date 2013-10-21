@@ -1,5 +1,5 @@
 [Unit]
-Description=Etcd Server Activation Socket
+Description=EPMD Server Activation Socket
 
 [Socket]
 ListenStream=4369
