@@ -12,6 +12,7 @@ import (
 	"runtime/pprof"
 	"strconv"
 	"time"
+	"github.com/coreos/go-systemd/activation"
 )
 
 var noEpmd bool
@@ -64,7 +65,12 @@ func main() {
 		var err error
 		var l net.Listener
 		if !noEpmd {
-			l, err = net.Listen("tcp", net.JoinHostPort("", listenPort))
+			listen_fds := activation.Files()
+			if listen_fds != nil {
+				l, err = net.FileListener(listen_fds[0])
+			} else {
+				l, err = net.Listen("tcp", net.JoinHostPort("", listenPort))
+			}
 			if err != nil || noEpmd {
 				// Cannot bind, eclus instance already running, connect to it
 				eclusCli()
