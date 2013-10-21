@@ -68,9 +68,7 @@ func main() {
 			if err != nil || noEpmd {
 				// Cannot bind, eclus instance already running, connect to it
 				eclusCli()
-			}
-		} else {
-			if !noEpmd {
+			} else {
 				epm := make(chan regReq, 10)
 				go epmReg(epm)
 				go func() {
@@ -84,11 +82,11 @@ func main() {
 						}
 					}
 				}()
+				if nodeEnabled() {
+					go runNode()
+				}
+				<-stopCh
 			}
-			if nodeEnabled() {
-				go runNode()
-			}
-			<-stopCh
 		}
 	} else {
 		eclusCli()
