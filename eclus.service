@@ -11,4 +11,5 @@ ExecStart=/usr/bin/eclus
 
 [Install]
 WantedBy=multi-user.target
+Alias=epmd.service
 Also=eclus.socket
