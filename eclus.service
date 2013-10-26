@@ -5,6 +5,14 @@ Requires=eclus.socket
 
 [Service]
 Type=simple
+User=eclus
+Group=eclus
+WorkingDirectory=/run/eclus
+DeviceAllow=/dev/null rw
+PrivateTmp=true
+NoNewPrivileges=true
+LimitNPROC=1
+LimitFSIZE=0
 StandardOutput=journal
 StandardError=journal
 ExecStart=/usr/bin/eclus
