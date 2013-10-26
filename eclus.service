@@ -11,6 +11,7 @@ WorkingDirectory=/run/eclus
 DeviceAllow=/dev/null rw
 PrivateTmp=true
 NoNewPrivileges=true
+Restart=always
 LimitNPROC=1
 LimitFSIZE=0
 StandardOutput=journal
