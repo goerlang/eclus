@@ -5,10 +5,18 @@ Requires=eclus.socket
 
 [Service]
 Type=simple
+User=eclus
+Group=eclus
+WorkingDirectory=/run/eclus
+DeviceAllow=/dev/null rw
+PrivateTmp=true
+NoNewPrivileges=true
+Restart=always
+LimitFSIZE=0
 StandardOutput=journal
 StandardError=journal
 ExecStart=/usr/bin/eclus
 
 [Install]
-WantedBy=multi-user.target
+Alias=epmd.service
 Also=eclus.socket
