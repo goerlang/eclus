@@ -65,7 +65,7 @@ func main() {
 		var err error
 		var l net.Listener
 		if !noEpmd {
-			listen_fds := activation.Files()
+			listen_fds := activation.Files(false)
 			if listen_fds != nil {
 				l, err = net.FileListener(listen_fds[0])
 			} else {
